@@ -1,0 +1,14 @@
+
+<div class="content">
+  <h2>Symbolic Toggles</h2>
+  {% for name, state in toggles.items %}
+    <p>{{ name }}: {{ state|yesno:"ON,OFF" }}</p>
+  {% endfor %}
+  <hr />
+  <h3>Agents</h3>
+  <ul>
+    {% for agent in agents %}
+      <li>{{ agent }}</li>
+    {% endfor %}
+  </ul>
+</div>

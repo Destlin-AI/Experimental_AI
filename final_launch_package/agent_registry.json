@@ -1,0 +1,9 @@
+{
+  "agents": [
+    {"id": "writer", "role": "generator", "model": "llama3"},
+    {"id": "validator", "role": "contradiction-checker", "model": "phi:2"},
+    {"id": "tagger", "role": "fragment tagger", "model": "tinyllama"},
+    {"id": "researcher", "role": "external fetcher", "model": "mistral"},
+    {"id": "prioritizer", "role": "RAM/NVMe scorer", "model": "gemma:2b"}
+  ]
+}

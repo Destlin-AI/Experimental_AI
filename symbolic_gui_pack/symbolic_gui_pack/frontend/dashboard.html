@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🧠 Symbolic Memory Dashboard</title>
+  <style>
+    body {
+      background-color: #0e0e0e;
+      color: #00ffcc;
+      font-family: 'Consolas', monospace;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 0.5em;
+      color: #00ffff;
+    }
+    section {
+      margin-bottom: 2em;
+      border-bottom: 1px solid #00ffcc33;
+      padding-bottom: 1em;
+    }
+    pre {
+      background: #111;
+      padding: 1em;
+      overflow-x: auto;
+      font-size: 0.9em;
+      color: #ccffcc;
+    }
+  </style>
+  <script>
+    async function fetchSection(url, targetId) {
+      const res = await fetch(url);
+      const data = await res.json();
+      document.getElementById(targetId).textContent = JSON.stringify(data, null, 2);
+    }
+
+    function refreshAll() {
+      fetchSection('/memory', 'mem');
+      fetchSection('/llm', 'llm');
+      fetchSection('/agents', 'agents');
+      fetchSection('/system', 'sys');
+    }
+
+    window.onload = refreshAll;
+  </script>
+</head>
+<body>
+  <h1>🧠 Symbolic Memory System</h1>
+
+  <section>
+    <h2>📊 Memory Summary</h2>
+    <pre id="mem">Loading...</pre>
+  </section>
+
+  <section>
+    <h2>🤖 LLM Models (Ollama)</h2>
+    <pre id="llm">Loading...</pre>
+  </section>
+
+  <section>
+    <h2>🕹️ Agents</h2>
+    <pre id="agents">Loading...</pre>
+  </section>
+
+  <section>
+    <h2>💻 System Status</h2>
+    <pre id="sys">Loading...</pre>
+  </section>
+
+  <button onclick="refreshAll()">🔁 Refresh</button>
+</body>
+</html>
