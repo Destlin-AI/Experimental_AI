@@ -1,0 +1,30 @@
+ This command is used to activate a virtual environment named `swarm_env` in your terminal. When you activate a virtual environment, it isolates the Python packages for that project from the global installation of Python on your system, which helps avoid potential conflicts between different projects.
+
+Here's how to use this command:
+
+1. First, ensure that the `swarm_env` virtual environment has been created and installed with the required Python packages. You can create it using a tool like `virtualenv` or `venv`. For example, with `virtualenv`, you might run `virtualenv swarm_env` to create the environment.
+
+2. To activate the virtual environment, open your terminal (or Command Prompt on Windows) and navigate to the directory containing your project. Once there, type:
+
+   ```
+   source swarm_env/bin/activate
+   ```
+
+   On some systems, especially on Windows, you might use `swarm_env\Scripts\activate` instead of `source swarm_env/bin/activate`. The command might vary depending on the operating system and your shell configuration.
+
+3. Once the environment is activated, you can confirm this by checking the command prompt. It should change to show the name of the active virtual environment. For example:
+
+   ```
+   (swarm_env) $
+   ```
+
+   Now, when you install or upgrade packages using `pip`, they will be installed within the `swarm_env` environment and won't affect your global Python installation.
+
+4. When you are finished working on the project, deactivate the virtual environment by typing:
+
+   ```
+   deactivate
+   ```
+
+   This allows you to use other projects or your system-wide Python installation without any interference from the `swarm_env` environment.
+

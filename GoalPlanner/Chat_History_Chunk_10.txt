@@ -1,0 +1,703 @@
+# 🌱 NeuroStore: Seed & Walker Core Logic
+
+## 1. `symbol_seed_generator.py`
+```python
+import os
+import yaml
+import hashlib
+from datetime import datetime
+
+USE_LLM = False
+MODEL_PATH = "models/mistral-7b-q4.gguf"
+SEED_OUTPUT_DIR = "fragments/core/"
+SEED_COUNT = 100
+
+BASE_SEEDS = [
+    "truth is important",
+    "conflict creates learning",
+    "change is constant",
+    "observation precedes action",
+    "emotion influences memory",
+    "self seeks meaning",
+    "logic guides belief",
+    "doubt triggers inquiry",
+    "energy becomes form",
+    "ideas replicate",
+    "something must stay_still so everything else can move"
+]
+
+def generate_id(content):
+    return hashlib.sha256(content.encode()).hexdigest()[:12]
+
+def to_fragment(statement):
+    parts = statement.split()
+    if len(parts) < 3:
+        return None
+    subj = parts[0]
+    pred = parts[1]
+    obj = "_".join(parts[2:])
+    return {
+        "id": generate_id(statement),
+        "predicate": pred,
+        "arguments": [subj, obj],
+        "confidence": 1.0,
+        "emotion": {
+            "curiosity": 0.8,
+            "certainty": 1.0
+        },
+        "tags": ["seed", "immutable", "core"],
+        "immutable": True,
+        "claim": statement,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+def save_fragment(fragment, output_dir):
+    fname = f"frag_{fragment['id']}.yaml"
+    path = os.path.join(output_dir, fname)
+    with open(path, 'w') as f:
+        yaml.dump(fragment, f)
+
+def generate_symbolic_seeds():
+    if not os.path.exists(SEED_OUTPUT_DIR):
+        os.makedirs(SEED_OUTPUT_DIR)
+    seed_statements = BASE_SEEDS[:SEED_COUNT]
+    count = 0
+    for stmt in seed_statements:
+        frag = to_fragment(stmt)
+        if frag:
+            save_fragment(frag, SEED_OUTPUT_DIR)
+            count += 1
+    print(f"Generated {count} symbolic seed fragments in {SEED_OUTPUT_DIR}")
+
+if __name__ == "__main__":
+    generate_symbolic_seeds()
+```
+
+---
+
+## 2. `token_agent.py`
+```python
+import os
+import yaml
+import time
+import random
+from pathlib import Path
+from core.cortex_bus import send_message
+
+FRAG_DIR = Path("fragments/core")
+
+class TokenAgent:
+    def __init__(self, agent_id="token_agent_01"):
+        self.agent_id = agent_id
+        self.frag_path = FRAG_DIR
+        self.fragment_cache = []
+
+    def load_fragments(self):
+        files = list(self.frag_path.glob("*.yaml"))
+        random.shuffle(files)
+        for f in files:
+            with open(f, 'r', encoding='utf-8') as file:
+                try:
+                    frag = yaml.safe_load(file)
+                    if frag:
+                        self.fragment_cache.append((f, frag))
+                except yaml.YAMLError as e:
+                    print(f"[{self.agent_id}] YAML error in {f.name}: {e}")
+
+    def walk_fragment(self, path, frag):
+        if 'claim' not in frag:
+            return
+        walk_log = {
+            'fragment': path.name,
+            'claim': frag['claim'],
+            'tags': frag.get('tags', []),
+            'confidence': frag.get('confidence', 0.5),
+            'walk_time': time.time()
+        }
+        if random.random() < 0.2:
+            walk_log['flag_mutation'] = True
+        send_message({
+            'from': self.agent_id,
+            'type': 'walk_log',
+            'payload': walk_log,
+            'timestamp': int(time.time())
+        })
+
+    def run(self):
+        self.load_fragments()
+        for path, frag in self.fragment_cache:
+            self.walk_fragment(path, frag)
+            time.sleep(0.1)
+
+if __name__ == "__main__":
+    agent = TokenAgent()
+    agent.run()
+```
+
+---
+
+## 3. `backup_and_export.py`
+```python
+import os
+import tarfile
+from datetime import datetime
+
+EXPORT_DIR = os.path.expanduser("~/neurostore/backups")
+SOURCE_DIRS = [
+    "agents",
+    "fragments",
+    "logs",
+    "meta",
+    "runtime",
+    "data"
+]
+
+os.makedirs(EXPORT_DIR, exist_ok=True)
+
+backup_name = f"neurostore_brain_{datetime.now().strftime('%Y%m%d_%H%M%S')}.tar.gz"
+backup_path = os.path.join(EXPORT_DIR, backup_name)
+
+with tarfile.open(backup_path, "w:gz") as tar:
+    for folder in SOURCE_DIRS:
+        if os.path.exists(folder):
+            print(f"[+] Archiving {folder}/")
+            tar.add(folder, arcname=folder)
+        else:
+            print(f"[-] Skipped missing folder: {folder}")
+
+print(f"
+[✓] Brain backup complete → {backup_path}")
+```
+
+---
+
+## 4. `deep_file_crawler.py`
+```python
+import os
+import hashlib
+from datetime import datetime
+
+def hash_file(path, chunk_size=8192):
+    try:
+        hasher = hashlib.md5()
+        with open(path, 'rb') as f:
+            for chunk in iter(lambda: f.read(chunk_size), b""):
+                hasher.update(chunk)
+        return hasher.hexdigest()
+    except Exception as e:
+        return f"ERROR: {e}"
+
+def crawl_directory(root_path, out_path):
+    count = 0
+    with open(out_path, 'w') as out_file:
+        for dirpath, dirnames, filenames in os.walk(root_path):
+            for file in filenames:
+                full_path = os.path.join(dirpath, file)
+                try:
+                    stat = os.stat(full_path)
+                    hashed = hash_file(full_path)
+                    line = f"{full_path} | {stat.st_size} bytes | hash: {hashed}"
+                except Exception as e:
+                    line = f"{full_path} | ERROR: {str(e)}"
+                out_file.write(line + "
+")
+                count += 1
+                if count % 100 == 0:
+                    print(f"[+] {count} files crawled...")
+
+    print(f"
+[✓] Crawl complete. Total files: {count}")
+    print(f"[✓] Full output saved to: {out_path}")
+
+if __name__ == "__main__":
+    BASE = "/home/neuroadmin/neurostore"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_txt = f"/home/neuroadmin/neurostore_crawl_output_{timestamp}.txt"
+
+    print(f"[*] Starting deep crawl on: {BASE}")
+    crawl_directory(BASE, output_txt)
+```
+
+---
+
+## 5. `boot_wrapper.py`
+```python
+import subprocess
+import os
+import platform
+import time
+import psutil
+from pathlib import Path
+
+SCRIPTS = [
+    "deep_system_scan.py",
+    "auto_configurator.py",
+    "path_optimizer.py",
+    "fragment_teleporter.py",
+    "run_logicshredder.py"
+]
+
+LOG_PATH = Path("logs/boot_times.log")
+LOG_PATH.parent.mkdir(exist_ok=True)
+
+def run_script(name, timings):
+    if not Path(name).exists():
+        print(f"[boot] ❌ Missing script: {name}")
+        timings.append((name, "MISSING", "-", "-"))
+        return False
+
+    print(f"[boot] ▶ Running: {name}")
+    start = time.time()
+    proc = psutil.Popen(["python", name])
+
+    peak_mem = 0
+    cpu_percent = []
+
+    try:
+        while proc.is_running():
+            mem = proc.memory_info().rss / (1024**2)
+            peak_mem = max(peak_mem, mem)
+            cpu = proc.cpu_percent(interval=0.1)
+            cpu_percent.append(cpu)
+    except Exception:
+        pass
+
+    end = time.time()
+    duration = round(end - start, 2)
+    avg_cpu = round(sum(cpu_percent) / len(cpu_percent), 1) if cpu_percent else 0
+
+    print(f"[boot] ⏱ {name} finished in {duration}s | CPU: {avg_cpu}% | MEM: {int(peak_mem)}MB
+")
+    timings.append((name, duration, avg_cpu, int(peak_mem)))
+    return proc.returncode == 0
+
+def log_timings(timings, total):
+    with open(LOG_PATH, "a", encoding="utf-8") as log:
+        log.write(f"
+=== BOOT TELEMETRY [{time.strftime('%Y-%m-%d %H:%M:%S')}] ===
+")
+        for name, dur, cpu, mem in timings:
+            log.write(f" - {name}: {dur}s | CPU: {cpu}% | MEM: {mem}MB
+")
+        log.write(f"TOTAL BOOT TIME: {round(total, 2)} seconds
+")
+
+def main():
+    print("🔧 LOGICSHREDDER SYSTEM BOOT STARTED")
+    print(f"🧠 Platform: {platform.system()} | Python: {platform.python_version()}")
+    print("==============================================
+")
+
+    start_total = time.time()
+    timings = []
+
+    for script in SCRIPTS:
+        success = run_script(script, timings)
+        if not success:
+            print(f"[boot] 🛑 Boot aborted due to failure in {script}")
+            break
+
+    total_time = time.time() - start_total
+    print(f"✅ BOOT COMPLETE in {round(total_time, 2)} seconds.")
+    log_timings(timings, total_time)
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+## 6. `quant_feeder_setup.py`
+```python
+import subprocess
+import os
+from pathlib import Path
+import sys
+import time
+import urllib.request
+import zipfile
+
+LLAMA_REPO = "https://github.com/ggerganov/llama.cpp.git"
+MODEL_URL = "https://huggingface.co/afrideva/Tinystories-gpt-0.1-3m-GGUF/resolve/main/TinyStories-GPT-0.1-3M.Q2_K.gguf"
+
+MODEL_DIR = Path("models")
+MODEL_FILE = MODEL_DIR / "TinyStories.Q2_K.gguf"
+LLAMA_DIR = Path("llama.cpp")
+LLAMA_BIN = LLAMA_DIR / "build/bin/main"
+
+def install_dependencies():
+    print("[setup] 🔧 Installing dependencies...")
+    subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade", "pip"])
+    subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "requests"])
+
+def clone_llama_cpp():
+    if not LLAMA_DIR.exists():
+        print("[setup] 🧠 Cloning llama.cpp...")
+        subprocess.run(["git", "clone", LLAMA_REPO])
+    else:
+        print("[setup] ✅ llama.cpp already exists")
+
+def build_llama_cpp():
+    print("[setup] 🔨 Building llama.cpp...")
+    os.makedirs(LLAMA_DIR / "build", exist_ok=True)
+    subprocess.run(["cmake", "-B", "build"], cwd=LLAMA_DIR)
+    subprocess.run(["cmake", "--build", "build", "--config", "Release"], cwd=LLAMA_DIR)
+
+def download_model():
+    if MODEL_FILE.exists():
+        print(f"[setup] ✅ Model already downloaded: {MODEL_FILE.name}")
+        return
+    print(f"[setup] ⬇️  Downloading model to {MODEL_FILE}...")
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    urllib.request.urlretrieve(MODEL_URL, MODEL_FILE)
+
+def patch_feeder():
+    print("[setup] 🛠️ Patching quant_prompt_feeder.py with model and llama path")
+    feeder_code = Path("quant_prompt_feeder.py").read_text(encoding="utf-8")
+    patched = feeder_code.replace(
+        'MODEL_PATH = Path("models/TinyLlama.Q4_0.gguf")',
+        f'MODEL_PATH = Path("{MODEL_FILE.as_posix()}")'
+    ).replace(
+        'LLAMA_CPP_PATH = Path("llama.cpp/build/bin/main")',
+        f'LLAMA_CPP_PATH = Path("{LLAMA_BIN.as_posix()}")'
+    )
+    Path("quant_prompt_feeder.py").write_text(patched, encoding="utf-8")
+
+def run_feeder():
+    print("[setup] 🚀 Running quant_prompt_feeder.py...")
+    subprocess.run(["python", "quant_prompt_feeder.py"])
+
+if __name__ == "__main__":
+    install_dependencies()
+    clone_llama_cpp()
+    build_llama_cpp()
+    download_model()
+    patch_feeder()
+    run_feeder()
+```
+
+---
+
+## 7. `benchmark_agent.py`
+```python
+import time
+import random
+import psutil
+import threading
+
+results = {}
+
+def simulate_fragment_walks(num_fragments, walk_speed_per_sec):
+    walks_done = 0
+    start_time = time.time()
+    end_time = start_time + 10
+    while time.time() < end_time:
+        walks_done += walk_speed_per_sec
+        time.sleep(1)
+    results['walks'] = walks_done
+
+def simulate_mutation_ops(rate_per_sec):
+    mutations_done = 0
+    start_time = time.time()
+    end_time = start_time + 10
+    while time.time() < end_time:
+        mutations_done += rate_per_sec
+        time.sleep(1)
+    results['mutations'] = mutations_done
+
+def simulate_emotion_decay_ops(fragments_count, decay_passes_per_sec):
+    decay_ops_done = 0
+    start_time = time.time()
+    end_time = start_time + 10
+    while time.time() < end_time:
+        decay_ops_done += decay_passes_per_sec
+        time.sleep(1)
+    results['decay'] = decay_ops_done
+
+def run():
+    walk_thread = threading.Thread(target=simulate_fragment_walks, args=(10000, random.randint(200, 350)))
+    mutate_thread = threading.Thread(target=simulate_mutation_ops, args=(random.randint(30, 60),))
+    decay_thread = threading.Thread(target=simulate_emotion_decay_ops, args=(10000, random.randint(50, 100)))
+
+    walk_thread.start()
+    mutate_thread.start()
+    decay_thread.start()
+
+    walk_thread.join()
+    mutate_thread.join()
+    decay_thread.join()
+
+    results['cpu_usage_percent'] = psutil.cpu_percent(interval=1)
+    results['ram_usage_percent'] = psutil.virtual_memory().percent
+
+    print("===== Symbolic TPS Benchmark =====")
+    print(f"Fragment Walks     : {results['walks'] // 10} per second")
+    print(f"Mutations          : {results['mutations'] // 10} per second")
+    print(f"Emotion Decay Ops  : {results['decay'] // 10} per second")
+    print()
+    print(f"CPU Usage          : {results['cpu_usage_percent']}%")
+    print(f"RAM Usage          : {results['ram_usage_percent']}%")
+    print("==================================")
+
+if __name__ == "__main__":
+    run()
+```
+
+---
+
+## 8. `nvme_memory_shim.py`
+```python
+import os
+import time
+import yaml
+import psutil
+from pathlib import Path
+from shutil import disk_usage
+
+BASE = Path(__file__).parent
+CONFIG_PATH = BASE / "system_config.yaml"
+LOGIC_CACHE = BASE / "hotcache"
+
+# 🔎 Improved detection with fallback by mount label
+def detect_nvmes():
+    nvmes = []
+    fallback_mounts = ['C', 'D', 'E', 'F']
+
+    for part in psutil.disk_partitions():
+        label = part.device.lower()
+        try:
+            usage = disk_usage(part.mountpoint)
+            is_nvme = any(x in label for x in ['nvme', 'ssd'])
+            is_fallback = part.mountpoint.strip(':\').upper() in fallback_mounts
+
+            if is_nvme or is_fallback:
+                nvmes.append({
+                    'mount': part.mountpoint,
+                    'fstype': part.fstype,
+                    'free_gb': round(usage.free / 1e9, 2),
+                    'total_gb': round(usage.total / 1e9, 2)
+                })
+        except Exception:
+            continue
+
+    print(f"[shim] Detected {len(nvmes)} logic-capable drive(s): {[n['mount'] for n in nvmes]}")
+    return sorted(nvmes, key=lambda d: d['free_gb'], reverse=True)
+
+def assign_as_logic_ram(nvmes):
+    logic_zones = {}
+    for i, nvme in enumerate(nvmes[:4]):  # limit to 4 shards
+        zone = f"ram_shard_{i+1}"
+        path = Path(nvme['mount']) / "logicshred_cache"
+        path.mkdir(exist_ok=True)
+        logic_zones[zone] = str(path)
+    return logic_zones
+
+def update_config(zones):
+    if CONFIG_PATH.exists():
+        with open(CONFIG_PATH, 'r') as f:
+            config = yaml.safe_load(f)
+    else:
+        config = {}
+
+    config['logic_ram'] = zones
+    config['hotcache_path'] = str(LOGIC_CACHE)
+    with open(CONFIG_PATH, 'w') as f:
+        yaml.safe_dump(config, f)
+    print(f"✅ Config updated with NVMe logic cache: {list(zones.values())}")
+
+if __name__ == "__main__":
+    LOGIC_CACHE.mkdir(exist_ok=True)
+    print("🧠 Detecting NVMe drives and logic RAM mounts...")
+    drives = detect_nvmes()
+    if not drives:
+        print("⚠️ No NVMe or fallback drives detected. System unchanged.")
+    else:
+        zones = assign_as_logic_ram(drives)
+        update_config(zones)
+```
+
+---
+
+## 9. `layer_inference_engine.py`
+```python
+import os
+import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+from collections import OrderedDict
+
+# ========== I/O FUNCTIONS ==========
+
+def load_embedding(token_id, path="/NeuroStore/embeddings"):
+    filepath = os.path.join(path, f"{token_id}.bin")
+    return np.fromfile(filepath, dtype=np.float32)
+
+def load_layer_weights(layer_id, base="/NeuroStore/layers"):
+    layer_dir = os.path.join(base, f"layer_{layer_id:04d}")
+    attention = np.fromfile(os.path.join(layer_dir, "attention_weights.bin"), dtype=np.float32)
+    feedforward = np.fromfile(os.path.join(layer_dir, "feedforward_weights.bin"), dtype=np.float32)
+    return attention.reshape(768, 768), feedforward.reshape(768, 768)
+
+# ========== COMPUTATION ==========
+
+def forward_pass(embedding, layer_weights):
+    attention, feedforward = layer_weights
+    attention_result = np.dot(embedding, attention)
+    return np.dot(attention_result, feedforward)
+
+def load_layers_in_parallel(layer_ids):
+    with ThreadPoolExecutor() as executor:
+        return list(executor.map(load_layer_weights, layer_ids))
+
+# ========== MEMORY ==========
+
+class LRUCache(OrderedDict):
+    def __init__(self, capacity):
+        super().__init__()
+        self.capacity = capacity
+
+    def get(self, key):
+        if key in self:
+            self.move_to_end(key)
+            return self[key]
+        return None
+
+    def put(self, key, value):
+        if len(self) >= self.capacity:
+            self.popitem(last=False)
+        self[key] = value
+
+# ========== SAMPLE INIT ==========
+
+def generate_sample_files():
+    os.makedirs("/NeuroStore/embeddings", exist_ok=True)
+    os.makedirs("/NeuroStore/layers/layer_0001", exist_ok=True)
+
+    embedding = np.random.rand(768).astype(np.float32)
+    embedding.tofile("/NeuroStore/embeddings/token_001.bin")
+
+    attn = np.random.rand(768, 768).astype(np.float32)
+    ffwd = np.random.rand(768, 768).astype(np.float32)
+
+    attn.tofile("/NeuroStore/layers/layer_0001/attention_weights.bin")
+    ffwd.tofile("/NeuroStore/layers/layer_0001/feedforward_weights.bin")
+
+# ========== USAGE EXAMPLE ==========
+
+if __name__ == "__main__":
+    generate_sample_files()
+    embedding = load_embedding("token_001")
+    layer_weights = load_layer_weights(1)
+    output = forward_pass(embedding, layer_weights)
+    print("Forward pass output shape:", output.shape)
+```
+
+---
+
+## 10. `memory_tracker.py`
+```python
+import psutil
+import time
+from datetime import datetime
+from pathlib import Path
+
+LOG_PATH = Path("logs/memory_usage.log")
+LOG_PATH.parent.mkdir(exist_ok=True)
+
+class MemoryTracker:
+    def __init__(self, interval=5):
+        self.interval = interval
+
+    def log_memory(self):
+        while True:
+            usage = psutil.virtual_memory()
+            log_line = f"[{datetime.now().isoformat()}] RAM: {usage.percent}% used of {usage.total / 1e9:.2f} GB
+"
+            with open(LOG_PATH, 'a') as log:
+                log.write(log_line)
+            print(log_line.strip())
+            time.sleep(self.interval)
+
+if __name__ == "__main__":
+    tracker = MemoryTracker(interval=10)
+    tracker.log_memory()
+```
+
+---
+
+## 11. `memory_archiver.py`
+```python
+import os
+import shutil
+import time
+from datetime import datetime
+from pathlib import Path
+
+SOURCE_DIR = Path("hotcache")
+ARCHIVE_ROOT = Path("archive/memory")
+ARCHIVE_ROOT.mkdir(parents=True, exist_ok=True)
+
+INTERVAL_SECONDS = 60 * 15  # every 15 minutes
+
+print("[ARCHIVER] Starting memory snapshot loop...")
+while True:
+    if not SOURCE_DIR.exists():
+        print("[ARCHIVER] Source cache not found. Waiting...")
+        time.sleep(INTERVAL_SECONDS)
+        continue
+
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dest = ARCHIVE_ROOT / f"snapshot_{stamp}"
+    shutil.copytree(SOURCE_DIR, dest)
+    print(f"[ARCHIVER] Snapshot saved → {dest}")
+    time.sleep(INTERVAL_SECONDS)
+```
+
+---
+
+## 12. `memory_visualizer.py`
+```python
+import os
+import yaml
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+FRAG_PATH = Path("fragments/core")
+
+# Count frequency of each tag
+tag_freq = {}
+conf_values = []
+
+for file in FRAG_PATH.glob("*.yaml"):
+    try:
+        with open(file, 'r') as f:
+            frag = yaml.safe_load(f)
+            tags = frag.get("tags", [])
+            conf = frag.get("confidence", 0.5)
+            conf_values.append(conf)
+            for tag in tags:
+                tag_freq[tag] = tag_freq.get(tag, 0) + 1
+    except Exception as e:
+        print(f"Error reading {file}: {e}")
+
+# Plot tag distribution
+plt.figure(figsize=(10, 4))
+plt.bar(tag_freq.keys(), tag_freq.values(), color='skyblue')
+plt.xticks(rotation=45)
+plt.title("Tag Frequency in Symbolic Fragments")
+plt.tight_layout()
+plt.savefig("logs/tag_frequency_plot.png")
+plt.close()
+
+# Plot confidence histogram
+plt.figure(figsize=(6, 4))
+plt.hist(conf_values, bins=20, color='salmon', edgecolor='black')
+plt.title("Confidence Score Distribution")
+plt.xlabel("Confidence")
+plt.ylabel("Count")
+plt.tight_layout()
+plt.savefig("logs/confidence_histogram.png")
+plt.close()
+
+print("[Visualizer] Tag frequency and confidence distribution plots saved to logs/.")
+```
+

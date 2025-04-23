@@ -1,0 +1,59 @@
+
+SYMBOLIC AI MODULE DOCUMENTATION
+================================
+
+📦 SpoonEngine
+- Purpose: Tracks symbolic task energy levels
+- Key Methods: apply(), restore(), status()
+
+📄 PDFDigestor
+- Purpose: Converts PDF files into YAML memory fragments
+- Output Path: D:/Project_AI/fragments/pdf/
+
+🧠 QuantumMemory
+- Purpose: Stores key-value pairs encoded with quantum statevectors
+- Depends on: Qiskit, PlasmaClient
+
+⚛️ fractal_attention()
+- Purpose: Accelerated attention mechanism
+- Depends on: flash_attention, numpy
+
+🔐 SecureMemory
+- Purpose: Atomic write access to memory map
+- Method: atomic_write(data, offset)
+
+📤 NeuroStoreManager
+- Purpose: Handles fragment injection into DuckDB
+- Output DBs: D:/Project_AI/memory_db/*.duckdb
+
+💾 SymbolicQueryCache
+- Purpose: Caches query results for fast recall
+- Output: query_cache.json
+
+📊 FragmentTagGraph
+- Purpose: Analyzes tag usage across memory DBs
+- Output: meta/tag_graph.png
+
+🧠 NIMHarness
+- Purpose: Modular LLM dispatcher
+- Usage: register_model(), call()
+
+🧪 QuantumETL
+- Purpose: Encodes symbolic text into quantum states
+
+🎭 AvatarEngineShell
+- Purpose: Injects and executes modular expression scripts
+
+📈 ModelStatProfiler
+- Purpose: Profiles model inference latency
+
+💓 EmotionEngine
+- Purpose: Tracks valence, arousal, and saturation
+
+🧩 ModuleToggleRegistry
+- Purpose: Turns modules ON/OFF at runtime or via GUI
+
+📂 GUI Dashboard (Black Dashboard Django)
+- Panel Left: agent toggles, emotion engine, LLM slots
+- Panel Right: RAM stats, log stream, DB fragment count
+

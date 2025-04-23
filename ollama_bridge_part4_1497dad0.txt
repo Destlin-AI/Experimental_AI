@@ -1,0 +1,12 @@
+ip`, they will be installed within the `swarm_env` environment and won't affect your global Python installation.
+
+4. When you are finished working on the project, deactivate the virtual environment by typing:
+
+   ```
+   deactivate
+   ```
+
+   This allows you to use other projects or your system-wide Python installation without any interference from the `swarm_env` environment.
+
+
+==================================================

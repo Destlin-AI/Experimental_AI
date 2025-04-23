@@ -1,0 +1,22 @@
+[
+  {
+    "name": "search_memory",
+    "description": "Search indexed memory fragments for any keyword, returning content and file locations.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "keyword": {
+          "type": "string",
+          "description": "The keyword or phrase to search for in memory."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max number of memory results to return.",
+          "default": 10
+        }
+      },
+      "required": ["keyword"]
+    },
+    "run": "python C:/real_memory_system/tools/goal_router.py {keyword} {limit}"
+  }
+]

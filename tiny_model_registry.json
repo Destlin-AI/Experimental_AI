@@ -1,0 +1,27 @@
+[
+  {
+    "id": "agent01",
+    "role": "summarizer",
+    "model": "tinydolphin:1.1b"
+  },
+  {
+    "id": "agent02",
+    "role": "coder",
+    "model": "tinyllama:1.1b"
+  },
+  {
+    "id": "agent03",
+    "role": "retriever",
+    "model": "phi:2"
+  },
+  {
+    "id": "agent04",
+    "role": "reasoner",
+    "model": "zephyr:7b"
+  },
+  {
+    "id": "agent05",
+    "role": "generalist",
+    "model": "mistral:7b"
+  }
+]

@@ -1,0 +1,60 @@
+<!-- index-3.html | Natasha in Notika | Daemon GUI Mode -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Natasha Memory Core</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/css/normalize.css">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background-color: #0f1117; color: #e0e0e0; }
+    .card { background-color: #1c1e26; border: 1px solid #2c2f3a; }
+    .text-light { color: #ccc !important; }
+    input::placeholder { color: #aaa !important; }
+    code { color: #6cf; font-size: 0.85em; }
+    .section-title { color: #6effe8; font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="container-fluid mt-5">
+  <div class="row">
+    <div class="col-lg-12">
+      <div class="normal-table-list">
+        <div class="basic-tb-hd">
+          <h2 class="section-title">🧠 Natasha Memory Search</h2>
+          <p>Query symbolic fragments from your daemon’s memory DB.</p>
+          <form method="get" action="/search" class="form-inline">
+            <input type="text" name="q" class="form-control" placeholder="Search term (e.g., 'boot', 'daemon', 'usb')" required style="width: 400px;">
+            <button class="btn btn-success ml-2">Search</button>
+          </form>
+        </div>
+        <div class="bsc-tbl mt-4">
+          {% if results %}
+          <table class="table table-hover text-light">
+            <thead>
+              <tr><th>Category</th><th>Filename</th><th>Preview</th><th>Path</th></tr>
+            </thead>
+            <tbody>
+              {% for r in results %}
+              <tr>
+                <td>{{ r.category }}</td>
+                <td>{{ r.filename }}</td>
+                <td>{{ r.snippet[:80] }}...</td>
+                <td><code>{{ r.filepath }}</code></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif keyword %}
+          <p class="text-warning">No results found for <strong>{{ keyword }}</strong>.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
